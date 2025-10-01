@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Word Count - Kyle Lambert</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="scripts.js"></script> 
+  </head>
+  <body>
+    <h1>Word Count (Radware Demo)</h1>
+    <h2>Author: Kyle Lambert</h2>
+
+    <h3>Send Chunks:</h3>
+    <fieldset id="send-chunk-set">
+      <form id="send-chunk-form" action="/chunk" method="POST">
+        <label for="chunk">Chunk</label>
+        <textarea name="chunk"></textarea><br/>
+        <input class="loader-btn" type="submit" value="Send" style=""/>
+        <div id="chunk-msg"></div>
+        <div id="chunk-loader" class="loader"></div>
+      </form>
+    </fieldset>
+
+    <h3>Get Word Count:</h3>
+    <fieldset id="word-count-set">
+      <form id="word-count-form" action="/word">
+        <label for="word">Word</label>
+        <input class="text-lower" type="text" name="word"/><br/>
+        <input class="loader-btn" type="submit" value="Find"/>
+        <div id="word-loader" class="loader"></div><br/>
+        <div id="word-msg"></div><br/>
+        <label for="count">Count</label>
+        <input id="count-num" type="number" name="count" readonly/><br/>
+        <label for="first-added">First Added (UTC)</label>
+        <input id="first-added-datetime" type="datetime-local" name="first-added" readonly/><br/>
+        <label for="last-added">Last Added (UTC)</label>
+        <input id="last-added-datetime" type="datetime-local" name="last-added" readonly/><br/>
+      </form>
+    </fieldset>
+  </body>
+</html>
