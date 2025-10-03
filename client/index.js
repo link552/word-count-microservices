@@ -1,18 +1,35 @@
 // Imports.
 const express = require('express');
 const bodyParser = require('body-parser');
-const axios = require('axios');
+const amqp = require('amqplib');
+const {v4: uuidv4} = require('uuid');
+const {EventEmitter} = require('events');
 
 // Environment.
 require('dotenv').config();
 const PORT = process.env.PORT || 4000;
-const INGESTION_PORT = process.env.INGESTION_PORT || 4001;
-const COUNT_PORT = process.env.COUNT_PORT || 4002;
 
 // Init.
 const app = express();
 app.use(express.static('public'))
 app.use(bodyParser.urlencoded());
+const emitter = new EventEmitter();
+
+// Program.
+let channel;
+
+(async _ => {
+    const connection = await amqp.connect('amqp://localhost');
+    channel = await connection.createChannel();
+
+    channel.assertQueue('chunks', {durable: false});
+    channel.assertQueue('count.reply-to', {durable: false});
+
+    channel.consume('count.reply-to', msg => {
+        emitter.emit(msg.properties.correlationId, msg);
+    }, { noAck: true });
+
+})();
 
 // Processes a chunk of text.
 app.post('/chunk', async (req, res) => {
@@ -22,15 +39,12 @@ app.post('/chunk', async (req, res) => {
     // TODO: Sanitize for security.
     const chunk = req.body.chunk;
 
-    try {
-        const response = await axios.post(`http://localhost:${INGESTION_PORT}/chunks`, {chunks: [chunk]});
-        res.json(response.data);
-    } catch (error) {
-        res.json({
-            success: false,
-            message: 'Failed to process chunk.'
-        });
-    }
+    channel.sendToQueue('chunks', Buffer.from(JSON.stringify({chunks: [chunk]})));
+
+    res.json({
+        success: true,
+        message: 'Sent chunk for processing!'
+    });
 });
 
 // Gets the count of a word.
@@ -41,15 +55,17 @@ app.get('/word', async (req, res) => {
     // TODO: Sanitize for security.
     const word = req.query.word;
 
-    try {
-        const response = await axios.get(`http://localhost:${COUNT_PORT}/word?word=${word}`);
-        res.json(response.data);
-    } catch (error) {
-        res.json({
-            success: false,
-            message: 'Failed to get word count.'
-        });
-    }
+    const correlationId = uuidv4();
+
+    emitter.once(correlationId, msg => {
+        const body = JSON.parse(msg.content.toString());
+        res.json(body);
+    });
+
+    channel.sendToQueue('count', Buffer.from(JSON.stringify({word: word})), {
+        correlationId: correlationId,
+        replyTo: 'count.reply-to'
+    });
 });
 
 app.listen(PORT, _ => {

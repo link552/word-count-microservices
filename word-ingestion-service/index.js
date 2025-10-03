@@ -1,67 +1,54 @@
-// Imports.
-const express = require('express');
-const bodyParser = require('body-parser');
-const axios = require('axios');
+const amqp = require('amqplib/callback_api');
 
-// Environment.
-require('dotenv').config();
-const PORT = process.env.PORT || 4001;
-const COUNT_PORT = process.env.COUNT_PORT || 4002;
+amqp.connect('amqp://localhost', (error0, connection) => {
+    if (error0) throw error0;
 
-// Init.
-const app = express();
-app.use(express.static('public'))
-app.use(bodyParser.json());
+    connection.createChannel((error1, channel) => {
+        if (error1) throw error1;
 
-// Processes a payload of chunk texts.
-app.post('/chunks', async (req, res) => {
-    // TODO: Add proper logging.
-    console.log(req.body);
+        channel.assertQueue('chunks', {durable: false});
+        channel.assertQueue('word', {durable: false});
 
-    const chunks = req.body.chunks;
-    let words = [];
+        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", 'chunks');
 
-    chunks.forEach(chunk => {
-        // Since we are tracking whole words, we don't want any special
-        // characters to be included in them.
-        let sanitized = chunk.replace(/[^a-zA-Z0-9 ]/g, '');
+        channel.consume('chunks', msg => {
+            const body = JSON.parse(msg.content.toString());
 
-        // Replace all whitespace with a single space. This will prevent empty
-        // strings in our final word set.
-        let condensed = sanitized.replace(/\s+/g, ' ');
+            // TODO: Add proper logging.
+            console.log(body);
 
-        // All words are separated by a space.
-        let chunkWords = condensed.split(' ');
+            const chunks = body.chunks;
 
-        words = words.concat(chunkWords);
+            let words = [];
+
+            chunks.forEach(chunk => {
+                // Since we are tracking whole words, we don't want any special
+                // characters to be included in them.
+                let sanitized = chunk.replace(/[^a-zA-Z0-9 ]/g, '');
+
+                // Replace all whitespace with a single space. This will prevent empty
+                // strings in our final word set.
+                let condensed = sanitized.replace(/\s+/g, ' ');
+
+                // All words are separated by a space.
+                let chunkWords = condensed.split(' ');
+
+                words = words.concat(chunkWords);
+            });
+
+            words.forEach(async word => {
+                channel.sendToQueue('word', Buffer.from(JSON.stringify({word: word})));
+
+                // TODO: Handle failed posts.
+                //
+                // Since we are posting many words, we may want to return a list of
+                // which words failed.
+                //
+                // Another option would be to show the users a progress bar so they
+                // can see the progress of their words being processed, perhaps even
+                // prompting them if a word fails, granting them the option to retry
+                // if necessary.
+            });
+        }, {noAck: true});
     });
-
-    // TODO: Consider strategies for large ingestion.
-    //
-    // If expected to ingest large datasets (thousands of words), we may
-    // want to implement a queue whereby the ingestion service can process
-    // words on it's own time.
-
-    words.forEach(async word => {
-        await axios.post(`http://localhost:${COUNT_PORT}/word`, {word: word});
-
-        // TODO: Handle failed posts.
-        //
-        // Since we are posting many words, we may want to return a list of
-        // which words failed.
-        //
-        // Another option would be to show the users a progress bar so they
-        // can see the progress of their words being processed, perhaps even
-        // prompting them if a word fails, granting them the option to retry
-        // if necessary.
-    });
-
-    res.json({
-        success: true,
-        message: 'Processed text chunks successfully!'
-    });
-});
-
-app.listen(PORT, () => {
-    console.log(`Word Ingestion Service is running on port ${PORT}...`);
 });

@@ -11,8 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
-    "axios": "^1.12.2",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0"
+    "amqplib": "^0.10.9",
+    "dotenv": "^17.2.3"
   }
 }

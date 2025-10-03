@@ -18,6 +18,7 @@ This repository contains three Node.js/Express microservices working together as
 - [Docker](https://docs.docker.com/get-started/get-docker) (Desktop version comes with Kubernetes CLI)
 - [Kubernetes CLI](https://kubernetes.io/releases/download) (`kubectl`)
 - [Node.js](https://nodejs.org/en/download) (For local development)
+- [RabbitMQ](https://www.rabbitmq.com/docs/download) (For local development)
 
 2. **Clone this repository:**
 
@@ -63,7 +64,6 @@ node index.js
 ```
 
 5. Open the client at [http://localhost:4000](http://localhost:4000).
-
 
 ***
 
