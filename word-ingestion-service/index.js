@@ -9,7 +9,7 @@ amqp.connect('amqp://localhost', (error0, connection) => {
         channel.assertQueue('chunks', {durable: false});
         channel.assertQueue('word', {durable: false});
 
-        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", 'chunks');
+        console.log('Waiting to consume messages...');
 
         channel.consume('chunks', msg => {
             const body = JSON.parse(msg.content.toString());
@@ -24,14 +24,14 @@ amqp.connect('amqp://localhost', (error0, connection) => {
             chunks.forEach(chunk => {
                 // Since we are tracking whole words, we don't want any special
                 // characters to be included in them.
-                let sanitized = chunk.replace(/[^a-zA-Z0-9 ]/g, '');
+                const sanitized = chunk.replace(/[^a-zA-Z0-9 ]/g, '');
 
                 // Replace all whitespace with a single space. This will prevent empty
                 // strings in our final word set.
-                let condensed = sanitized.replace(/\s+/g, ' ');
+                const condensed = sanitized.replace(/\s+/g, ' ');
 
                 // All words are separated by a space.
-                let chunkWords = condensed.split(' ');
+                const chunkWords = condensed.split(' ');
 
                 words = words.concat(chunkWords);
             });

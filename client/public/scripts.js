@@ -29,7 +29,6 @@ document.addEventListener("DOMContentLoaded", _ => {
             body: params
         });
         const result = await response.json();
-        console.log(result);
 
         // Re-enable form.
         fieldset.disabled = false;

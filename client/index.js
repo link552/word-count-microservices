@@ -28,7 +28,6 @@ let channel;
     channel.consume('count.reply-to', msg => {
         emitter.emit(msg.properties.correlationId, msg);
     }, { noAck: true });
-
 })();
 
 // Processes a chunk of text.
@@ -36,7 +35,8 @@ app.post('/chunk', async (req, res) => {
     // TODO: Add proper logging.
     console.log(req.body);
 
-    // TODO: Sanitize for security.
+    // NOTE: Word ingestion service will strip special characters, effectively
+    // sanitizing this user input.
     const chunk = req.body.chunk;
 
     channel.sendToQueue('chunks', Buffer.from(JSON.stringify({chunks: [chunk]})));
@@ -52,7 +52,8 @@ app.get('/word', async (req, res) => {
     // TODO: Add proper logging.
     console.log(req.query);
 
-    // TODO: Sanitize for security.
+    // NOTE: Word count service will strip special characters, effectively
+    // sanitizing this user input.
     const word = req.query.word;
 
     const correlationId = uuidv4();

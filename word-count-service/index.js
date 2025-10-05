@@ -20,7 +20,7 @@ amqp.connect('amqp://localhost', (error0, connection) => {
         channel.assertQueue('word', {durable: false});
         channel.assertQueue('count', {durable: false});
 
-        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", 'word');
+        console.log('Waiting to consume messages...');
 
         channel.consume('word', async msg => {
             const body = JSON.parse(msg.content.toString());
@@ -32,6 +32,7 @@ amqp.connect('amqp://localhost', (error0, connection) => {
 
             // Persist word count.
             // IMPORTANT: Words MUST be stored in lowercase for proper tracking.
+            // Words should already be validated and normalized at this point.
             const {error} = await supabase
                 .from('words')
                 .insert({word: word.toLowerCase()});
@@ -53,10 +54,16 @@ amqp.connect('amqp://localhost', (error0, connection) => {
 
             const word = body.word;
 
+            // Since we are tracking whole words, we don't want any special
+            // characters to be included in them.
+            const sanitized = word.replace(/[^a-zA-Z0-9 ]/g, '');
+
+            // Remove all whitespace.
+            const condensed = sanitized.replace(/\s+/g, '');
+
             // Query for word count.
             // IMPORTANT: Words MUST be queried in lowercase for proper tracking.
-            // XXX: Is SQL injection a concern here?
-            const {data, error} = await supabase.rpc('get_count', {in_word: word.toLowerCase()});
+            const {data, error} = await supabase.rpc('get_count', {in_word: condensed.toLowerCase()});
 
             if (error) {
                 channel.sendToQueue(msg.properties.replyTo, Buffer.from(JSON.stringify({
